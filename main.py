@@ -5,7 +5,7 @@ from agents.decision import DecisionAgent
 
 
 ticker = "INFY.NS"
-
+print("main.py started")
 technical = TechnicalAgent()
 fundamental = FundamentalAgent()
 news = NewsAgent()

@@ -1,7 +1,11 @@
-# Environment and secrets
+# Environment and secrets (explicit patterns; .env.example stays trackable)
 .env
-.env.*
-!.env.example
+.env.local
+.env.development
+.env.production
+.env.staging
+.env.test
+.env.*.local
 
 # Virtual environment
 venv/
