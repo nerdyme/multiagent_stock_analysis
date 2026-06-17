@@ -25,10 +25,22 @@ class TechnicalAgent:
             }
 
         close = df["Close"]
+        if isinstance(close, pd.DataFrame):
+            close = close.squeeze(axis=1)
 
+# simple moving average is a technical indicator that measures 
+# the average price of a security over a period of time.
         sma50 = close.rolling(50).mean().iloc[-1]
         sma200 = close.rolling(200).mean().iloc[-1]
 
+# Relative Strength Index
+# it is a technical indicator that measures the speed and change of price movements.
+# it is calculated using the following formula:
+# RSI = 100 - 100 / (1 + RS)
+# where RS is the average of the up days and the down days.
+# the formula is:
+# RS = average of the up days / average of the down days
+# the formula is:
         rsi = ta.momentum.RSIIndicator(
             close
         ).rsi().iloc[-1]
