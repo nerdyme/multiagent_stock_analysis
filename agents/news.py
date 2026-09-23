@@ -3,16 +3,16 @@ import os
 
 import yfinance as yf
 from dotenv import load_dotenv
-from openai import OpenAI
+from anthropic import Anthropic
 
 load_dotenv()
 
 
 class NewsAgent:
 
-    def __init__(self, model="gpt-4.1-mini"):
-        self.client = OpenAI(
-            api_key=os.getenv("OPENAI_API_KEY")
+    def __init__(self, model="claude-3-5-sonnet-20240620"):
+        self.client = Anthropic(
+            api_key=os.getenv("ANTHROPIC_API_KEY")
         )
         self.model = model
 
@@ -28,8 +28,9 @@ class NewsAgent:
         headlines = []
 
         for item in news:
-
             title = item.get("title")
+            if not title and isinstance(item.get("content"), dict):
+                title = item["content"].get("title")
 
             if title:
                 headlines.append(title)
@@ -79,40 +80,47 @@ Expected JSON:
 }}
 """
 
-        response = self.client.chat.completions.create(
-            model=self.model,
-            messages=[
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
-            temperature=0
-        )
+        try:
+            response = self.client.messages.create(
+                model=self.model,
+                max_tokens=1024,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": prompt,
+                    }
+                ],
+                temperature=0,
+            )
+        except Exception as exc:
+            return self._fallback_response(f"LLM request failed: {exc}")
 
-        content = response.choices[0].message.content
+        text_blocks = [
+            block.text for block in response.content if block.type == "text"
+        ]
+        content = "".join(text_blocks)
+
+        if not content.strip():
+            return self._fallback_response("Empty LLM response")
 
         try:
-
             result = json.loads(content)
-
             return {
                 "agent": "news",
                 "vote": result["vote"],
                 "confidence": result["confidence"],
-                "reason": result["reason"]
+                "reason": result["reason"],
             }
+        except (json.JSONDecodeError, KeyError, TypeError):
+            return self._fallback_response("Could not parse LLM response")
 
-        except Exception:
-
-            return {
-                "agent": "news",
-                "vote": "HOLD",
-                "confidence": 50,
-                "reason": [
-                    "Could not parse LLM response"
-                ]
-            }
+    def _fallback_response(self, reason):
+        return {
+            "agent": "news",
+            "vote": "HOLD",
+            "confidence": 50,
+            "reason": [reason],
+        }
 
     def run(self, ticker):
 
